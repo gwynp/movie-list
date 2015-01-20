@@ -1,5 +1,4 @@
-# Gwyn Price
-
+# Gwyn Price 
 import os
 import guessit
 import httplib
@@ -12,9 +11,10 @@ import time
 start_time = time.time()
 
 # files and directories
-movieDir='/mnt/drobo/movies'
+movieDir='/opt/movies'
 resultFile='/opt/code/movies/movies.json'
 errorFile='/opt/code/movies/notworking.txt'
+delimeter=' '
 
 # initialise variables
 errorCount=0
@@ -36,12 +36,9 @@ def getDirectoryDetails(newroot):
 	# e.g. Fifth Estate The
 	# strip 'the' off the back and add to the fron so we get:
 	# e.g. The Fifth Estate
-	suffix = 'the'
-	if str(title).endswith(suffix):
-		title = title[:-3]
-		title = 'The ' + title
-	suffix = 'The'
-	if str(title).endswith(suffix):
+	suffix = ['the','The']
+        for s in suffix:
+	    if str(title).endswith(s):
 		title = title[:-3]
 		title = 'The ' + title
 	return title, year
@@ -81,8 +78,10 @@ def getDetails(url):
 # and open the error file
 os.chdir(movieDir)
 ef = open(errorFile, 'w')
-
+of = open(resultFile, 'w')
+of.write("{\n \"data\": [ \n")
 # walk through the movie dir grabbing all the sub directory names
+
 for root in os.walk('.'):
 	# remove ./ from start of filenames
 	newroot=root[0][2:]
@@ -105,24 +104,37 @@ for root in os.walk('.'):
 		title,year,actors,rating=getDetails(url)
 		# add the details to the movies dict
 		if title:
-			movies[title] = {"year":year,
-                         	"actors":actors,
-                        	"rating": rating}
-			successCount += 1
-        if not title:
+		#movies['data'] = {"title":title,
+			#							      "year":year,
+			#                  "actors":actors,
+			#                  "rating": rating}
+		    of.write(delimeter + '\n      [\n')
+		    of.write('\t\t\"' + title + '\",\n')
+		    of.write('\t\t\"' + year + '\",\n')
+		    of.write('\t\t\"' + actors + '\",\n')
+		    of.write('\t\t\"' + rating + '\"\n')
+		    of.write("      ]")
+		    successCount += 1
+                    delimeter=','
+                if not title:
         	#if we didnt get anything from omdbapi add to the 'broken' file
-        	ef.write(url + "\n") 
-        	errorCount += 1
+        	    ef.write(url + "\n") 
+        	    errorCount += 1
 
+
+of.write("\t ] \n }\n")
 
 # close the error file
 ef.close()
+of.close()
+
+
+pprint(movies)
+
 # write the results to the json file
-j = json.dumps(movies, indent=4)
-f = open(resultFile, 'w')
+#j = json.dumps(movies, indent=4)
 #print f,j
-print >> f, j
-f.close()
+#print >> f, j
 
 print("Time to process --- %s seconds ---" % (time.time() - start_time))
 print 'Success: ',successCount
